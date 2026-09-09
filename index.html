@@ -1,1 +1,74 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ROY SPIT — Random West</title><style>*{box-sizing:border-box}body{margin:0;background:#eee5d3;font-family:Georgia,serif;color:#2d241c;display:flex;justify-content:center;align-items:center;min-height:100vh}.card{width:min(760px,94vw);background:#d8c5a8;padding:14px;box-shadow:0 5px 20px #0002}.head{text-align:center;font-size:18px;letter-spacing:3px;margin:4px 0 12px}.frame{position:relative;background:#c7b79e;min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden}img{width:100%;max-height:520px;object-fit:cover;display:block}.status{position:absolute;font-size:18px}button{display:block;margin:12px auto 2px;border:1px solid #2d241c;background:#eee5d3;color:#2d241c;padding:7px 18px;font:inherit;cursor:pointer}.credit{text-align:center;font-size:11px;margin-top:8px;opacity:.7}</style></head><body><div class="card"><div class="head">⛰︎ RANDOM WEST ⛰︎</div><div class="frame"><div class="status" id="status">Searching the Southwest…</div><img id="photo" alt="" hidden></div><button onclick="newPhoto()">↻ NEW</button><div class="credit" id="credit"></div></div><script>const queries=["New Mexico desert","New Mexico landscape","New Mexico adobe","New Mexico mountains","New Mexico ghost town","New Mexico road","Southwest United States desert","New Mexico ranch","New Mexico pueblo","New Mexico mining"];async function newPhoto(){const s=document.getElementById('status'),i=document.getElementById('photo'),c=document.getElementById('credit');s.hidden=false;s.textContent='Searching the Southwest…';i.hidden=true;c.textContent='';const q=queries[Math.floor(Math.random()*queries.length)];try{const u='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent(q)+'&gsrnamespace=6&gsrlimit=30&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1400&format=json&origin=*';const d=await fetch(u).then(r=>r.json()),p=Object.values(d.query?.pages||{}).filter(x=>x.imageinfo?.[0]?.thumburl);if(!p.length)throw 0;const x=p[Math.floor(Math.random()*p.length)],m=x.imageinfo[0];i.src=m.thumburl;i.onload=()=>{s.hidden=true;i.hidden=false};c.textContent='Wikimedia Commons · '+(m.extmetadata?.Artist?.value||'').replace(/<[^>]*>/g,'')}catch(e){s.textContent='No photo found — press NEW'}}newPhoto();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Random West</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#d8c19d;color:#3e2d20;font-family:Georgia,serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:14px}.card{width:min(100%,620px);background:#ead9b9;border:1px solid #8f704d;box-shadow:0 4px 16px #0002;padding:14px;text-align:center}.title{font-size:22px;letter-spacing:2px;margin:2px 0 12px}.frame{background:#2f241b;border:7px solid #6e5137;box-shadow:inset 0 0 0 2px #b39163;min-height:300px;display:flex;align-items:center;justify-content:center;overflow:hidden}.frame img{display:block;width:100%;max-height:62vh;object-fit:contain}.loading{padding:80px 10px;color:#d8c19d;font-style:italic}.meta{font-size:13px;margin:9px 0 5px;min-height:18px}.category{font-size:12px;letter-spacing:1.5px;text-transform:uppercase}.artist{opacity:.8}.buttons{margin-top:10px}.new{font:inherit;font-weight:bold;letter-spacing:1px;color:#ead9b9;background:#513b29;border:1px solid #332419;padding:8px 18px;cursor:pointer}.new:hover{background:#684b31}.source{font-size:10px;margin-top:8px}.source a{color:#63472f}.error{padding:70px 15px;color:#e2c9a3}</style>
+</head>
+<body>
+<div class="card">
+  <div class="title">⛰︎ RANDOM WEST ⛰︎</div>
+  <div class="frame" id="frame"><div class="loading">Searching the West…</div></div>
+  <div class="meta category" id="category"></div>
+  <div class="meta artist" id="artist"></div>
+  <div class="buttons"><button class="new" id="newBtn">↻ NEW</button></div>
+  <div class="source" id="source"></div>
+</div>
+<script>
+const categories=[
+ ['New Mexico / Desert','New Mexico desert landscape'],
+ ['Southwest Landscape','Southwestern United States landscape'],
+ ['Ghost Town','New Mexico ghost town'],
+ ['Mining','New Mexico mining town'],
+ ['Old Road','New Mexico old road'],
+ ['Adobe / Pueblo','New Mexico adobe pueblo'],
+ ['Western Town','New Mexico western town'],
+ ['Ranch / Horses','New Mexico ranch horses'],
+ ['Mesa / Mountains','New Mexico mesa mountains'],
+ ['Motel / Roadside','New Mexico roadside motel']
+];
+let lastCategory=-1;
+const $=id=>document.getElementById(id);
+function cleanArtist(s){return (s||'').replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim()}
+async function searchImages(query){
+  // DuckDuckGo's image endpoint is browser-facing rather than a public key-based API.
+  // We first obtain the per-search token (vqd), then request the image results.
+  const home='https://duckduckgo.com/?q='+encodeURIComponent(query)+'&iax=images&ia=images';
+  const r=await fetch(home,{credentials:'omit'});
+  const html=await r.text();
+  const m=html.match(/vqd=['"]?([\d-]+)['"]?/i) || html.match(/vqd=([\d-]+)/i);
+  if(!m) throw new Error('Search token unavailable');
+  const url='https://duckduckgo.com/i.js?l=us-en&o=json&q='+encodeURIComponent(query)+'&vqd='+encodeURIComponent(m[1])+'&f=,,,,&p=1';
+  const rr=await fetch(url,{credentials:'omit',headers:{'Accept':'application/json'}});
+  if(!rr.ok) throw new Error('Image search failed');
+  const data=await rr.json();
+  return (data.results||[]).filter(x=>x.image).map(x=>({image:x.image,title:x.title||'',source:x.url||'',thumbnail:x.thumbnail||''}));
+}
+async function newPhoto(){
+  $('newBtn').disabled=true;
+  $('frame').innerHTML='<div class="loading">Searching the West…</div>';
+  $('artist').textContent='';$('source').textContent='';
+  try{
+    let i; do{i=Math.floor(Math.random()*categories.length)}while(i===lastCategory&&categories.length>1); lastCategory=i;
+    const [label,query]=categories[i];
+    $('category').textContent=label;
+    let results=await searchImages(query);
+    if(!results.length) throw new Error('No results');
+    const item=results[Math.floor(Math.random()*results.length)];
+    const img=new Image();
+    img.alt=item.title||label; img.referrerPolicy='no-referrer';
+    img.onload=()=>{$('frame').replaceChildren(img);$('newBtn').disabled=false};
+    img.onerror=()=>{results.splice(results.indexOf(item),1); if(results.length){const next=results[Math.floor(Math.random()*results.length)];img.src=next.image}else{throw new Error('Image failed')}};
+    img.src=item.image;
+    $('source').innerHTML=item.source?'<a href="'+item.source.replace(/"/g,'%22')+'" target="_blank" rel="noopener">open source ↗</a>':'';
+  }catch(e){
+    $('frame').innerHTML='<div class="error">Couldn’t find a trail.<br><small>Try NEW again.</small></div>';
+    $('category').textContent=''; $('newBtn').disabled=false;
+  }
+}
+$('newBtn').addEventListener('click',newPhoto);newPhoto();
+</script>
+</body>
+</html>
