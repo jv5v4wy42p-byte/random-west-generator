@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Random West</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#e7d4b5;color:#4a321f;font-family:Georgia,'Times New Roman',serif;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:14px}
+  .card{width:min(100%,560px);background:#ead9bd;border:1px solid #9a7651;box-shadow:0 5px 18px rgba(55,35,18,.18);padding:14px 14px 12px;text-align:center}
+  h1{font-size:18px;letter-spacing:2px;margin:0 0 10px;font-weight:700}
+  .frame{position:relative;width:100%;aspect-ratio:4/3;background:#c8b08d;border:7px solid #6f4d31;box-shadow:inset 0 0 0 2px #b7956b;overflow:hidden}
+  img{width:100%;height:100%;object-fit:cover;display:block}
+  .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;background:#c8b08d;color:#5b4029}
+  .hidden{display:none}
+  button{margin-top:11px;border:1px solid #765235;background:#d8bc94;color:#4a321f;font:700 14px Georgia,serif;padding:7px 16px;cursor:pointer;letter-spacing:.5px}
+  button:hover{background:#ceb087} button:disabled{opacity:.55;cursor:wait}
+  .category{margin-top:9px;font-size:12px;letter-spacing:1.3px;text-transform:uppercase;font-weight:bold}
+  .credit{margin-top:5px;font-size:10px;line-height:1.35;color:#765b40;min-height:14px}
+  a{color:inherit}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>⛰︎ RANDOM WEST ⛰︎</h1>
+  <div class="frame">
+    <img id="photo" alt="Random New Mexico image">
+    <div id="loading" class="loading">Searching the Southwest…</div>
+  </div>
+  <button id="newBtn">↻ NEW</button>
+  <div id="category" class="category"></div>
+  <div id="credit" class="credit"></div>
+</div>
+<script>
+const categories = [
+  ['NEW MEXICO / DESERT','New Mexico desert'],
+  ['SOUTHWEST LANDSCAPE','New Mexico landscape'],
+  ['GHOST TOWN','New Mexico ghost town'],
+  ['MINING','New Mexico mining'],
+  ['OLD ROAD','New Mexico old road'],
+  ['ADOBE / PUEBLO','New Mexico adobe pueblo'],
+  ['WESTERN TOWN','New Mexico western town'],
+  ['RANCH / HORSES','New Mexico ranch horses'],
+  ['MESA / MOUNTAINS','New Mexico mesa mountains'],
+  ['MOTEL / ROADSIDE','New Mexico roadside motel']
+];
+const img=document.getElementById('photo'), loading=document.getElementById('loading'), btn=document.getElementById('newBtn'), cat=document.getElementById('category'), credit=document.getElementById('credit');
+let last=-1;
+function pick(){let i; do{i=Math.floor(Math.random()*categories.length)}while(categories.length>1&&i===last); last=i; return categories[i];}
+function clean(s){return String(s||'').replace(/<[^>]*>/g,'').trim()}
+async function newPhoto(){
+  btn.disabled=true; loading.classList.remove('hidden'); loading.textContent='Searching the Southwest…'; img.removeAttribute('src'); credit.textContent='';
+  const [label,query]=pick(); cat.textContent=label;
+  try{
+    const params=new URLSearchParams({q:query,page_size:'20',mature:'false'});
+    const res=await fetch('https://api.openverse.org/v1/images/?'+params.toString(),{headers:{'Accept':'application/json'}});
+    if(!res.ok) throw new Error('API '+res.status);
+    const data=await res.json();
+    const results=(data.results||[]).filter(x=>x.url||x.thumbnail);
+    if(!results.length) throw new Error('No results');
+    const item=results[Math.floor(Math.random()*results.length)];
+    const url=item.url||item.thumbnail;
+    img.onload=()=>{loading.classList.add('hidden');btn.disabled=false};
+    img.onerror=()=>{loading.textContent='Image unavailable — press NEW';btn.disabled=false};
+    img.src=url;
+    const creator=clean(item.creator);
+    const provider=clean(item.provider||item.source);
+    const landing=item.foreign_landing_url||item.detail_url;
+    credit.textContent=(creator?('Photo: '+creator):'Openverse image')+(provider?' · '+provider:'');
+    if(landing){credit.innerHTML+=' · '; const a=document.createElement('a'); a.href=landing; a.target='_blank'; a.rel='noopener'; a.textContent='source'; credit.appendChild(a)}
+  }catch(e){
+    loading.textContent='Couldn’t find an image — press NEW'; btn.disabled=false;
+  }
+}
+btn.addEventListener('click',newPhoto); newPhoto();
+</script>
+</body>
+</html>
